@@ -59,9 +59,9 @@ func TestLimiter_CleanUp(t *testing.T) {
 			for i := 0; i < tc.requests; i++ {
 				_ = limiter.Allow()
 			}
-			assert.NotEqual(t, 0, limiter.curr)
-			limiter.CleanUp()
-			assert.Equal(t, 0, limiter.curr)
+			assert.Equal(t, false, limiter.isReset)
+			limiter.ResetLimit()
+			assert.Equal(t, true, limiter.isReset)
 		})
 	}
 }

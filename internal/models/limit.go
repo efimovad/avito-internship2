@@ -14,6 +14,7 @@ type Limiter struct {
 	curr int
 	mu sync.Mutex
 	isPaused bool
+	isReset bool
 }
 
 func NewLimit(limit int, period time.Duration, wait time.Duration) *Limiter{
@@ -37,6 +38,10 @@ func (l *Limiter) Allow() bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
+	if l.isReset == true {
+		return true
+	}
+
 	l.curr = l.curr + 1
 
 	if !l.isPaused && time.Since(l.first) >= l.period {
@@ -59,10 +64,10 @@ func (l *Limiter) Allow() bool {
 	return true
 }
 
-func (l *Limiter) CleanUp() {
+func (l *Limiter) ResetLimit() {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.curr = 0
+	l.isReset = true
 }
 
 func (l *Limiter) GetCurr() int {
