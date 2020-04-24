@@ -15,10 +15,10 @@ type Server struct {
 	middleware *Middleware
 }
 
-func NewServer(cidr int, limit int, period time.Duration, wait time.Duration) Server {
+func NewServer(cidr int, limit int, period time.Duration, wait time.Duration, pass string) Server {
 	return Server{
 		router:		mux.NewRouter(),
-		middleware: NewLimitMiddleware(cidr, limit, period, wait),
+		middleware: NewLimitMiddleware(cidr, limit, period, wait, pass),
 	}
 }
 
@@ -33,13 +33,13 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) configure() {
-	s.router.Use(s.middleware.Limit)
+	s.router.Use(s.middleware.Admin, s.middleware.Limit)
 	s.router.HandleFunc("/", s.OkHandler).Methods(http.MethodGet)
-	s.router.HandleFunc("/reset", s.ResetHandler).Methods(http.MethodPost)
+	s.router.HandleFunc("/admin/reset", s.ResetHandler).Methods(http.MethodPost)
 }
 
 func (s *Server) OkHandler(w http.ResponseWriter, r *http.Request) {
-	_, _ = w.Write([]byte("HELLO FROM SERVER!"))
+	Respond(w, getResponseText("Hello","Hello from server"), http.StatusOK)
 }
 
 func (s *Server) ResetHandler(w http.ResponseWriter, r *http.Request) {
@@ -49,6 +49,7 @@ func (s *Server) ResetHandler(w http.ResponseWriter, r *http.Request) {
 
 	limiter := s.middleware.visitors.GetVisitor(netIP.String())
 	limiter.ResetLimit()
-	_, _ = w.Write([]byte("RESET LIMIT"))
+
+	Respond(w, getResponseText("Reset", "Limit was reset"), http.StatusOK)
 }
 
