@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"github.com/efimovad/avito-internship2/internal/models"
 	"golang.org/x/crypto/bcrypt"
 	"net"
@@ -35,7 +36,7 @@ func (m *Middleware) Limit(next http.Handler) http.Handler {
 		ip := net.ParseIP(ipStr)
 		if ip == nil {
 			body := getResponseText(WRONG_IP_ERROR, "X-Forwarded-For header include wrong ID")
-			Respond(w, body, http.StatusForbidden)
+			http.Error(w, body, http.StatusForbidden)
 			return
 		}
 		netIP := ip.Mask(m.mask)
@@ -44,11 +45,16 @@ func (m *Middleware) Limit(next http.Handler) http.Handler {
 		if limiter.Allow() == false {
 			text := "I only allow " + strconv.Itoa(m.limit) + " requests per period to this Web site per net. Try again soon."
 			body := getResponseText(TOO_MANY_REQ_ERROR, text)
-			Respond(w, body, http.StatusTooManyRequests)
+			http.Error(w, body, http.StatusTooManyRequests)
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+type User struct {
+	Login    string `json:"login"`
+	Password string `json:"password"`
 }
 
 func (m *Middleware) Admin(next http.Handler) http.Handler {
@@ -58,20 +64,24 @@ func (m *Middleware) Admin(next http.Handler) http.Handler {
 			return
 		}
 
-		login := r.URL.Query().Get("login")
-		password := r.URL.Query().Get("password")
+		var user User
+		err := json.NewDecoder(r.Body).Decode(&user)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 
-		if !m.isAdmin(login, password) {
+		if !m.isAdmin(user) {
 			body := getResponseText(NO_ACCESS_ERROR, "Enter admin login and password")
-			Respond(w, body, http.StatusForbidden)
+			http.Error(w, body, http.StatusForbidden)
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
 }
 
-func (m *Middleware) isAdmin(login string, password string) bool {
-	if login == "admin" && CheckPasswordHash(password, m.hash) {
+func (m *Middleware) isAdmin(user User) bool {
+	if user.Login == "admin" && CheckPasswordHash(user.Password, m.hash) {
 		return true
 	}
 	return false

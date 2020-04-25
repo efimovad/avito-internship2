@@ -34,7 +34,14 @@ Content-Type: text/plain; charset=utf-8
 </html>
 ```
 #### Сбросить предела запросов
-##### POST /admin/reset?login=admin&password=[ПАРОЛЬ] 
+##### POST /admin/reset/
+с телом запроса
+```
+{
+	"login":"admin",
+	"password":[ПАРОЛЬ]
+}
+```
 Сброс предела запросов от клиента в подсети /24 (IP берется из заголовка X-FORWARDED-FOR)  
 При запуске сервера с помощью флага --pass можно задать пароль (по умолчанию он 123456)   
 

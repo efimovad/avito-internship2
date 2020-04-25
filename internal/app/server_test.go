@@ -1,6 +1,8 @@
 package app
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -50,20 +52,29 @@ func TestServer_ResetHandler(t *testing.T) {
 	testCases := []struct {
 		name	string
 		status	int
+		user	User
 	}{
 		{
 			name: 	"valid",
 			status: http.StatusOK,
+			user:User{
+				Login:    "admin",
+				Password: "123456",
+			},
 		},
 	}
 
 	s := NewServer(cidr, limit, period, wait, "123456")
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			req := httptest.NewRequest("POST", "/admin/reset?login=admin&password=123456", nil)
 
+			body := new(bytes.Buffer)
+			if err := json.NewEncoder(body).Encode(tc.user); err != nil {
+				t.Error(err)
+			}
+
+			req := httptest.NewRequest("POST", "/admin/reset", body)
 			rec := httptest.NewRecorder()
-
 			handler := http.HandlerFunc(s.OkHandler)
 			handler.ServeHTTP(rec, req)
 
